@@ -141,4 +141,71 @@ nand_t *nand_output(nand_t const *g, ssize_t k) {
     unsigned index; // * not used
     ll_get_kth_element(g->connected_to_output_list, k, &output_connected_gate,
                        &index);
+    return output_connected_gate;
+}
+
+int nand_connect_nand(nand_t *g_out, nand_t *g_in, unsigned k) {
+    if (!g_out || !g_in || k > g_in->number_of_inputs - 1) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    // only setting output can fail
+    //  TODO ENUM for return value?
+    int error = ll_add_element(g_out->connected_to_output_list, g_in, k);
+    if (error) {
+        errno = ENOMEM;
+        return -1;
+    }
+    unplug_given_input(g_in,
+                       k); // should only be done when memerror is possible
+    g_in->gate_input_array[k] = g_out;
+    return 0;
+}
+
+int nand_connect_signal(bool const *s, nand_t *g, unsigned k) {
+    if (!s || !g || k > g->number_of_inputs - 1) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    // * memerror cant happen??
+    unplug_given_input(g, k);
+    g->signal_input_array[k] = s;
+    return 0;
+}
+
+static bool nand_helper_evaluate(nand_t *g, ssize_t *current_depth,
+                                 ssize_t *max_depth) {
+    if (*current_depth > *max_depth) {
+        *max_depth = *current_depth;
+    }
+
+    bool and_result = true;
+    for (unsigned i = 0; i < g->number_of_inputs; i++) {
+        if (g->signal_input_array[i]) {
+            and_result &= *g->signal_input_array[i]; // * does & work?
+        } else if (g->gate_input_array[i]) {
+            *current_depth++;
+            and_result &= nand_helper_evaluate(g->gate_input_array[i],
+                                               current_depth, max_depth);
+            *current_depth--;
+        } else {
+            and_result = false; // lack of input treated as a false
+            // function return false iff all inputs were true
+        }
+    }
+
+    return !and_result;
+}
+
+ssize_t nand_evaluate(nand_t **g, bool *s, size_t m) {
+    ssize_t critical_path = 0; // TODO verify recursion logic and base cases
+    for (size_t i = 0; i < m; i++) {
+        ssize_t current_critical_path = 0;
+        s[i] =
+            nand_helper_evaluate(g[i], &current_critical_path, &critical_path);
+    }
+
+    return critical_path;
 }

@@ -23,6 +23,7 @@ extern void ll_get_kth_element(llist_t *list, ssize_t k,
 
 // TODO shouldnt the statics maybe be done in the c file itself
 // does static have to be repeated in the declarations later
+// i guess gcc gave me the answer
 static int ll_add_element_to_empty_list(llist_t *list, nand_t *gate,
                                         unsigned index);
 static int ll_add_element_to_nonempty_list(llist_t *list, nand_t *gate,

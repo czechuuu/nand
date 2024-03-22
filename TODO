@@ -1,0 +1,11 @@
+move static declarations to c files
+add all declarations
+add commenrts
+function naming convention
+
+test linked list 
+test if gate logic good 
+test if critical path recursion works - gcc warns??
+
+HOW:
+test memory
