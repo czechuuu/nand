@@ -16,7 +16,7 @@ static void unplug_given_input(nand_t *receiver, unsigned k);
  */
 struct nand {
     unsigned number_of_inputs;
-    bool **signal_input_array;
+    bool const **signal_input_array;
     nand_t **gate_input_array;
     bool output;
     llist_t *connected_to_output_list;
@@ -191,8 +191,8 @@ static bool nand_helper_evaluate(nand_t *g, ssize_t *current_depth,
                                                current_depth, max_depth);
             *current_depth--;
         } else {
-            and_result = false; // lack of input treated as a false
-            // function return false iff all inputs were true
+            errno = ECANCELED; // * how to properly cancel evaluation
+            return false;      // * what i just did is a lazy solution
         }
     }
 
@@ -200,11 +200,20 @@ static bool nand_helper_evaluate(nand_t *g, ssize_t *current_depth,
 }
 
 ssize_t nand_evaluate(nand_t **g, bool *s, size_t m) {
+    if (!g || !s) {
+        errno = EINVAL;
+        return -1;
+    }
+
     ssize_t critical_path = 0; // TODO verify recursion logic and base cases
     for (size_t i = 0; i < m; i++) {
         ssize_t current_critical_path = 0;
         s[i] =
             nand_helper_evaluate(g[i], &current_critical_path, &critical_path);
+
+        if (errno != 0) {
+            return -1; // evaluating the current gate was canceled
+        }
     }
 
     return critical_path;

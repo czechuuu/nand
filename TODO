@@ -1,3 +1,8 @@
+ask const discard error nand_connect_signal
+
+detect cycles in gates 
+if theres no input we fail
+
 move static declarations to c files
 add all declarations
 add commenrts

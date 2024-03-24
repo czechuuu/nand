@@ -137,7 +137,8 @@ void ll_delete_element_with_given_value(llist_t *list, nand_t *gate,
  * deletes a node from a list
  * the node has to be in fact a part of the list
  */
-void ll_delete_given_node_from_list(llist_t *list, llist_element_t *node) {
+static void ll_delete_given_node_from_list(llist_t *list,
+                                           llist_element_t *node) {
     if (node == list->head && node == list->tail) {
         list->head = NULL;
         list->tail = NULL;
