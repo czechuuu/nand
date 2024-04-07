@@ -8,6 +8,16 @@
 static void unplug_all_io(nand_t *);
 static void unplug_given_input(nand_t *receiver, unsigned k);
 
+typedef struct dfs_info {
+    bool visited;
+    bool currently_visiting;
+} dfs_info_t;
+
+typedef struct evaluation_buffer {
+    bool available;
+    bool value;
+} evaluation_buffer_t;
+
 /*
  * under a given index i,  0 or 1 of the folowing should be nonnull:
  * - gate_input_array[i]
@@ -18,8 +28,9 @@ struct nand {
     unsigned number_of_inputs;
     bool const **signal_input_array;
     nand_t **gate_input_array;
-    bool output;
     llist_t *connected_to_output_list;
+    evaluation_buffer_t buffered_output;
+    dfs_info_t cycle_detection_information;
 };
 
 /*
@@ -40,6 +51,10 @@ nand_t *nand_new(unsigned n) {
                 new_gate->connected_to_output_list = ll_new();
                 if (new_gate->connected_to_output_list) {
                     // if we got here everything allocated succesfully
+                    new_gate->buffered_output.available = false;
+                    new_gate->cycle_detection_information.visited = false;
+                    new_gate->cycle_detection_information.currently_visiting =
+                        false;
                     new_gate->number_of_inputs = n;
                     return new_gate;
                 }
@@ -126,10 +141,18 @@ ssize_t nand_fan_out(nand_t const *g) {
  * if nothing is connected to the k-th input returns null
  */
 void *nand_input(nand_t const *g, unsigned k) {
+    if (!g || k >= g->number_of_inputs) {
+        errno = EINVAL;
+        return NULL;
+    }
+
     if (g->gate_input_array[k]) {
         return g->gate_input_array[k];
-    } else {
+    } else if (g->signal_input_array[k]) {
         return g->signal_input_array[k];
+    } else {
+        errno = 0;
+        return NULL;
     }
 }
 
@@ -175,10 +198,116 @@ int nand_connect_signal(bool const *s, nand_t *g, unsigned k) {
     return 0;
 }
 
-static bool nand_helper_evaluate(nand_t *g, ssize_t *current_depth,
+/*
+ * resets all the dfs visited information
+ */
+static void nand_clear_dfs_info(nand_t *g) {
+    if (g) {
+        g->cycle_detection_information.visited = false;
+        g->cycle_detection_information.currently_visiting = false;
+
+        int n = g->number_of_inputs;
+        for (size_t i = 0; i < n; i++) {
+            nand_t *current_input = g->gate_input_array[i];
+            // second part (of the if) should make it work even on cyclic
+            // systems
+            if (current_input &&
+                current_input->cycle_detection_information.visited) {
+                nand_clear_dfs_info(g->gate_input_array[i]);
+            }
+        }
+    }
+}
+
+/*
+ ! sets errno
+ * a valid system:
+ * - is nonnull (if not EINVAL)
+ * - has no cycles (if not ECANCELED)
+ * - has no components with missing inputs (if not EINVAL)
+ */
+static bool nand_validate_gate_system(nand_t *g) {
+    if (!g) {
+        errno = EINVAL;
+        return false;
+    }
+
+    g->cycle_detection_information.visited = true;
+    g->cycle_detection_information.currently_visiting = true;
+
+    int n = g->number_of_inputs;
+    for (size_t i = 0; i < n; i++) {
+        nand_t *current_input = g->gate_input_array[i];
+        if (current_input) { // could be a bool signal
+            if (!current_input->cycle_detection_information.visited) {
+                if (!nand_validate_gate_system(current_input)) {
+                    return false; // propagating the invalidity of children
+                                  // errno already set by them
+                }
+            } else if (current_input->cycle_detection_information
+                           .currently_visiting) {
+                // if both are true then this gates recursive calls led us here
+                errno = ECANCELED;
+                return false;
+            }
+        } else if (!g->signal_input_array[i]) {
+            // gate doesnt have a gate input and a signal input under curr index
+            errno = ECANCELED; // !what should it be
+            return false;
+        }
+    }
+
+    g->cycle_detection_information.currently_visiting = false;
+    return true;
+}
+
+/*
+ * given a gate array of size n checks if each entry represents a valid system
+ * see above fucntion for validity definition
+ */
+static bool nand_validate_gate_system_array(nand_t **gs, size_t n) {
+    for (size_t i = 0; i < n; i++) {
+        nand_t *current_gate_system = gs[i];
+        // kind of fishy if array of nulls passed
+        nand_clear_dfs_info(current_gate_system); // make sure all are unvisited
+        if (!nand_validate_gate_system(current_gate_system)) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+/*
+ * assumes acyclic system
+ */
+static void nand_clear_evaluation_buffer(nand_t *g) {
+    g->buffered_output.available = false;
+
+    int n = g->number_of_inputs;
+    for (size_t i = 0; i < n; i++) {
+        nand_t *current_input = g->gate_input_array[i];
+        if (current_input) {
+            nand_clear_evaluation_buffer(g->gate_input_array[i]);
+        }
+    }
+}
+
+static void nand_clear_evaluation_buffer_array(nand_t **gs, size_t n) {
+    for (size_t i = 0; i < n; i++) {
+        nand_clear_evaluation_buffer(gs[i]);
+    }
+}
+
+static bool nand_helper_evaluate(nand_t *g, ssize_t current_depth,
                                  ssize_t *max_depth) {
-    if (*current_depth > *max_depth) {
-        *max_depth = *current_depth;
+    //! i dont like this
+    if (g->number_of_inputs > 0) {
+        current_depth++;
+    }
+
+    if (current_depth > *max_depth) {
+        *max_depth = current_depth;
     }
 
     bool and_result = true;
@@ -186,13 +315,8 @@ static bool nand_helper_evaluate(nand_t *g, ssize_t *current_depth,
         if (g->signal_input_array[i]) {
             and_result &= *g->signal_input_array[i]; // * does & work?
         } else if (g->gate_input_array[i]) {
-            *current_depth++;
             and_result &= nand_helper_evaluate(g->gate_input_array[i],
                                                current_depth, max_depth);
-            *current_depth--;
-        } else {
-            errno = ECANCELED; // * how to properly cancel evaluation
-            return false;      // * what i just did is a lazy solution
         }
     }
 
@@ -200,21 +324,28 @@ static bool nand_helper_evaluate(nand_t *g, ssize_t *current_depth,
 }
 
 ssize_t nand_evaluate(nand_t **g, bool *s, size_t m) {
-    if (!g || !s) {
+    if (!g || !s || m == 0) {
         errno = EINVAL;
         return -1;
     }
 
-    ssize_t critical_path = 0; // TODO verify recursion logic and base cases
-    for (size_t i = 0; i < m; i++) {
-        ssize_t current_critical_path = 0;
-        s[i] =
-            nand_helper_evaluate(g[i], &current_critical_path, &critical_path);
-
-        if (errno != 0) {
-            return -1; // evaluating the current gate was canceled
-        }
+    if (!nand_validate_gate_system_array(g, m)) {
+        // errno already set
+        return -1;
     }
 
+    //! i dont understand how the critical path calculation works
+    ssize_t critical_path = 0; // TODO verify recursion logic and base cases
+    for (size_t i = 0; i < m; i++) {
+        nand_t *current_gate = g[i];
+        if (!current_gate->buffered_output.available) {
+            current_gate->buffered_output.value =
+                nand_helper_evaluate(current_gate, 0, &critical_path);
+            current_gate->buffered_output.available = true;
+        }
+        s[i] = current_gate->buffered_output.value;
+    }
+
+    nand_clear_evaluation_buffer_array(g, m);
     return critical_path;
 }
