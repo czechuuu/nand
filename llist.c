@@ -4,6 +4,15 @@
 #include <assert.h> //?do i really need this?
 #include <stdlib.h>
 
+static int ll_add_element_to_empty_list(llist_t *list, nand_t const *gate,
+                                        unsigned index);
+static int ll_add_element_to_nonempty_list(llist_t *list, nand_t const *gate,
+                                           unsigned index);
+static void ll_get_element(llist_element_t const *elem,
+                           nand_t **return_gate_ptr, unsigned *return_index);
+static void ll_delete_given_node_from_list(llist_t *list,
+                                           llist_element_t *node);
+
 // TODO maybe wrap gate and index in a struct?
 struct llist_element {
     nand_t *val_gate;
@@ -49,7 +58,7 @@ void ll_delete(llist_t *list) {
 /*
  * @returns length of given linked list
  */
-ssize_t ll_length(llist_t *list) { return list->length; }
+ssize_t ll_length(llist_t const *list) { return list->length; }
 
 /*
 ! check return value for failure
@@ -59,7 +68,7 @@ ssize_t ll_length(llist_t *list) { return list->length; }
  * @param gate the gate which will be added
  * @returns 0 on success -1 otherwise
  */
-int ll_add_element(llist_t *list, nand_t *gate, unsigned index) {
+int ll_add_element(llist_t *list, nand_t const *gate, unsigned index) {
     if (!list->length) {
         return ll_add_element_to_empty_list(list, gate, index);
     } else {
@@ -71,7 +80,7 @@ int ll_add_element(llist_t *list, nand_t *gate, unsigned index) {
  TODO does static have to be repeated
  * internal function that adds to a list assuming it already has no elements
 */
-static int ll_add_element_to_empty_list(llist_t *list, nand_t *gate,
+static int ll_add_element_to_empty_list(llist_t *list, nand_t const *gate,
                                         unsigned index) {
     llist_element_t *newListElement = malloc(sizeof(llist_element_t));
     if (newListElement) {
@@ -94,7 +103,7 @@ static int ll_add_element_to_empty_list(llist_t *list, nand_t *gate,
 /*
  * internal function that adds to a list assuming it already has an element
  */
-static int ll_add_element_to_nonempty_list(llist_t *list, nand_t *gate,
+static int ll_add_element_to_nonempty_list(llist_t *list, nand_t const *gate,
                                            unsigned index) {
     llist_element_t *newListElement = malloc(sizeof(llist_element_t));
     if (newListElement) {
@@ -120,7 +129,7 @@ static int ll_add_element_to_nonempty_list(llist_t *list, nand_t *gate,
  * @param gate gate value of the element that should be deleted
  * @param index index value of the element that should be deleted
  */
-void ll_delete_element_with_given_value(llist_t *list, nand_t *gate,
+void ll_delete_element_with_given_value(llist_t *list, nand_t const *gate,
                                         unsigned index) {
     llist_element_t *currentElement = list->head;
     while (currentElement) {
@@ -157,13 +166,13 @@ static void ll_delete_given_node_from_list(llist_t *list,
     free(node);
 }
 
-static void ll_get_element(llist_element_t *elem, nand_t **return_gate_ptr,
-                           unsigned *return_index) {
+static void ll_get_element(llist_element_t const *elem,
+                           nand_t **return_gate_ptr, unsigned *return_index) {
     *return_gate_ptr = elem->val_gate;
     *return_index = elem->val_index;
 }
 
-void ll_get_head(llist_t *list, nand_t **return_gate_ptr,
+void ll_get_head(llist_t const *list, nand_t **return_gate_ptr,
                  unsigned *return_index_ptr) {
     ll_get_element(list->head, return_gate_ptr, return_index_ptr);
 }
@@ -180,8 +189,8 @@ void ll_pop_head(llist_t *list, nand_t **return_gate_ptr,
     ll_delete_given_node_from_list(list, list->head);
 }
 
-void ll_get_kth_element(llist_t *list, ssize_t k, nand_t **return_gate_ptr,
-                        unsigned *return_index) {
+void ll_get_kth_element(llist_t const *list, ssize_t k,
+                        nand_t **return_gate_ptr, unsigned *return_index) {
     assert(k < list->length);
     llist_element_t *current_element = list->head;
     for (ssize_t i = 0; i < k; i++) {

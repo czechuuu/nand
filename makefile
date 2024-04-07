@@ -18,6 +18,11 @@ testy.o: testy.c
 tester: testy.o libnand.so
 	gcc -L. -o $@ $< -lnand
 
-TEST_RELATED= test.in tester auto test_gen
+nand_example.o: nand_example.c
+
+nand_example: nand_example.o libnand.so
+	gcc -L. -o $@ $< -lnand
+
+TEST_RELATED= test.in tester auto test_gen nand_example
 clean:
 	rm -rf *.o *.out libnand.so $(TEST_RELATED)

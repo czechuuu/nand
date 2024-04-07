@@ -1,11 +1,13 @@
 ask const discard error nand_connect_signal !!
 
-move static declarations to c files
-add all declarations
+move static declarations to c files -> or are they useless?
+add all declarations -> potenitaially useless
 function naming convention -> add nand everywhere
 more thorough makefile understangind...
 running provided tests
-size_t vs int vs unsigned in loops
+giga constness
+
+probably bad idea but maybe abandon llist for a resizable array
 
 HOW:
 test memory

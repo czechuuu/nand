@@ -206,7 +206,7 @@ static void nand_clear_dfs_info(nand_t *g) {
         g->cycle_detection_information.visited = false;
         g->cycle_detection_information.currently_visiting = false;
 
-        int n = g->number_of_inputs;
+        unsigned n = g->number_of_inputs;
         for (size_t i = 0; i < n; i++) {
             nand_t *current_input = g->gate_input_array[i];
             // second part (of the if) should make it work even on cyclic
@@ -235,7 +235,7 @@ static bool nand_validate_gate_system(nand_t *g) {
     g->cycle_detection_information.visited = true;
     g->cycle_detection_information.currently_visiting = true;
 
-    int n = g->number_of_inputs;
+    unsigned n = g->number_of_inputs;
     for (size_t i = 0; i < n; i++) {
         nand_t *current_input = g->gate_input_array[i];
         if (current_input) { // could be a bool signal
@@ -284,7 +284,7 @@ static bool nand_validate_gate_system_array(nand_t **gs, size_t n) {
 static void nand_clear_evaluation_buffer(nand_t *g) {
     g->buffered_output.available = false;
 
-    int n = g->number_of_inputs;
+    unsigned n = g->number_of_inputs;
     for (size_t i = 0; i < n; i++) {
         nand_t *current_input = g->gate_input_array[i];
         if (current_input) {
