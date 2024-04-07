@@ -1,14 +1,11 @@
 ask const discard error nand_connect_signal !!
 
-when dont have an input EINVAL or ECANCELED
-detect cycles in gates 
-buffer gate ouputs
-if theres no input we fail
-
 move static declarations to c files
 add all declarations
 function naming convention -> add nand everywhere
-makefile and linking...
+more thorough makefile understangind...
+running provided tests
+size_t vs int vs unsigned in loops
 
 HOW:
 test memory
