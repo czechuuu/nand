@@ -12,6 +12,7 @@ llist.o: llist.c
 
 libnand.so: nand.o llist.o memory_tests.o
 	$(CC) $(CLINKINGFLAGS) -o $@ $^
+	export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:./
 
 testy.o: testy.c
 
