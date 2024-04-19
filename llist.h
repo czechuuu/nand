@@ -3,9 +3,7 @@
 
 #include "nand.h"
 
-typedef struct llist_element llist_element_t;
 typedef struct llist llist_t;
-// TODO maybe struct for return of list getters
 
 extern llist_t *ll_new(void);
 extern void ll_delete(llist_t *list);
