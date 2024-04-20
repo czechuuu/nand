@@ -28,7 +28,7 @@ struct llist {
     struct llist_element *head, *tail;
 };
 
-/*
+/**
  * creates new empty list
  * can fail and return null
  * @returns a new empty list or null
@@ -44,7 +44,7 @@ llist_t *ll_new(void) {
     return newEmptyList;
 }
 
-/*
+/**
  * deletes given linked list along with all its elements freeing memory
  * @param list list to be deleted
  */
@@ -59,13 +59,14 @@ void ll_delete(llist_t *list) {
     free(list);
 }
 
-/*
+/**
+ * @param list
  * @returns length of given linked list
  */
 ssize_t ll_length(llist_t const *list) { return list->length; }
 
-/*
- * adds a given nand gate and index to a given linked list
+/**
+ * adds a nand gate and index to a linked list
  * can fail
  * @param list list to which the elements will be added
  * @param index index which will be added
@@ -80,8 +81,8 @@ int ll_add_element(llist_t *list, nand_t const *gate, unsigned index) {
     }
 }
 
-/*
- * internal function that adds to a list assuming it already has no elements
+/**
+ * internal function that adds to a list assuming it has no elements
  * can fail
  * @param list list to which the elements will be added
  * @param index index which will be added
@@ -107,7 +108,7 @@ static int ll_add_element_to_empty_list(llist_t *list, nand_t const *gate,
     }
 }
 
-/*
+/**
  * internal function that adds to a list assuming it already has an element
  * can fail
  * @param list list to which the elements will be added
@@ -134,7 +135,7 @@ static int ll_add_element_to_nonempty_list(llist_t *list, nand_t const *gate,
     }
 }
 
-/*
+/**
  * deletes first element with given gate index value pair
  * @param list from which an element should be deleted
  * @param gate gate value of the element that should be deleted
@@ -153,9 +154,11 @@ void ll_delete_element_with_given_value(llist_t *list, nand_t const *gate,
     }
 }
 
-/*
+/**
  * internal function that deletes a node from a list
  * the node has to be in fact a part of the list
+ * @param list which should be changed
+ * @param node list element which will be deleted
  */
 static void ll_delete_given_node_from_list(llist_t *list,
                                            llist_element_t *node) {
@@ -177,7 +180,7 @@ static void ll_delete_given_node_from_list(llist_t *list,
     free(node);
 }
 
-/*
+/**
  * internal function that returns the gate index value pair
  * of a given list element via pointers
  * @param elem list element whose value should be unpacked
@@ -191,7 +194,7 @@ static void ll_get_element(llist_element_t const *elem,
     *return_index_ptr = elem->val_index;
 }
 
-/*
+/**
  * returns the gate index value pair of the head of given list
  * the list should be nonempty
  * @param list
@@ -203,7 +206,7 @@ void ll_get_head(llist_t const *list, nand_t **return_gate_ptr,
     ll_get_element(list->head, return_gate_ptr, return_index_ptr);
 }
 
-/*
+/**
  * deletes current list head
  * if nonnull ptrs given also returns its value via ptrs
  * @param list
@@ -218,7 +221,7 @@ void ll_pop_head(llist_t *list, nand_t **return_gate_ptr,
     ll_delete_given_node_from_list(list, list->head);
 }
 
-/*
+/**
  * gets the value of the kth element of the list
  * @param list
  * @param k which element

@@ -1,10 +1,7 @@
-// todo prettier comments
 #include "nand.h"
 #include "llist.h"
 #include <errno.h>
 #include <stdlib.h>
-
-// TODO can (should) i do this??
 
 static void unplug_all_io(nand_t *);
 static void unplug_given_input(nand_t *receiver, unsigned k);
@@ -19,7 +16,7 @@ typedef struct evaluation_buffer {
     bool value;
 } evaluation_buffer_t;
 
-/*
+/**
  * under a given index i,  0 or 1 of the folowing should be nonnull:
  * - gate_input_array[i]
  * - signal_input_array[i]
@@ -34,9 +31,8 @@ struct nand {
     dfs_info_t cycle_detection_information;
 };
 
-/*
-TODO ugly af
- * creates new nand gate with n inputs
+/**
+ * @brief Creates new nand gate with n inputs.
  * calloc used to fill all arrays with nulls
  * NULLABLE
  * @param n number of inputs
@@ -73,7 +69,7 @@ nand_t *nand_new(unsigned n) {
     return NULL;
 }
 
-/*
+/**
  * unplugs inputs and outputs then frees all memory associated with the gate
  * renders given ptr unusable, if called on NULL does nothing
  * @param g gate to be deleted
@@ -89,7 +85,7 @@ void nand_delete(nand_t *g) {
     }
 }
 
-/*
+/**
  * internal function that unplugs all inputs and outputs of a given gate
  * assumes non null ptr given
  * @param gate gate which should be fully unplugged
@@ -108,7 +104,7 @@ static void unplug_all_io(nand_t *gate) {
     }
 }
 
-/*
+/**
  * internal function that unplugs given input
  * if it was a gate then also unplugs from the output list
  * @param receiver gate to which to input is connected
@@ -133,7 +129,7 @@ static void unplug_given_input(nand_t *receiver, unsigned k) {
     }
 }
 
-/*
+/**
  * returns the number of gate inputs into which given gates outputs connected
  * @returns number of outputs or -1 if NULL passed
  */
@@ -146,11 +142,12 @@ ssize_t nand_fan_out(nand_t const *g) {
     }
 }
 
-/*
+/**
  * returns ptr to gate or bool signal connected to the k-th input of g
  * if nothing is connected to the k-th input returns null
  * @param g gate
  * @param k input index
+ * @returns nand_t* gate, bool* signal, or null
  */
 void *nand_input(nand_t const *g, unsigned k) {
     if (!g || k >= g->number_of_inputs) {
@@ -168,7 +165,7 @@ void *nand_input(nand_t const *g, unsigned k) {
     }
 }
 
-/*
+/**
  * gets kth gate connected to the output of given gate
  * @param g gate
  * @param k output index
@@ -182,7 +179,7 @@ nand_t *nand_output(nand_t const *g, ssize_t k) {
     return output_connected_gate;
 }
 
-/*
+/**
  * connects a gate as an input
  * @param g_out the gate which will be connected
  * @param g_in the gate into which it will be connnected
@@ -207,7 +204,7 @@ int nand_connect_nand(nand_t *g_out, nand_t *g_in, unsigned k) {
     return 0;
 }
 
-/*
+/**
  * connects a signal as an input
  * @param s the boolean signal which will be connected
  * @param g_in the gate into which it will be connnected
@@ -226,7 +223,7 @@ int nand_connect_signal(bool const *s, nand_t *g, unsigned k) {
     return 0;
 }
 
-/*
+/**
  * internal funtion that clears visited info used by dfs
  * @param g gate which should be cleared
  */
@@ -248,7 +245,7 @@ static void nand_clear_dfs_info(nand_t *g) {
     }
 }
 
-/*
+/**
  * internal function that checks if a gate system is valid,
  * a valid system:
  * - is nonnull (if not EINVAL)
@@ -292,7 +289,7 @@ static bool nand_validate_gate_system(nand_t *g) {
     return true;
 }
 
-/*
+/**
  * checks if each entry in a gate system array is a valid system
  * see above for valid definition
  * @param gs gate array
@@ -311,7 +308,7 @@ static bool nand_validate_gate_system_array(nand_t **gs, size_t n) {
     return true;
 }
 
-/*
+/**
  * clears buffered information about a gates output
  * @param g gate
  */
@@ -327,7 +324,7 @@ static void nand_clear_evaluation_buffer(nand_t *g) {
     }
 }
 
-/*
+/**
  * clears buffered information of each element of gate array
  * @param gs gate array
  * @param n size of array
@@ -338,19 +335,18 @@ static void nand_clear_evaluation_buffer_array(nand_t **gs, size_t n) {
     }
 }
 
-/*
+/**
  * internal function that handles the recursion
  * needed to evaluate a gates output
  * @param g gate
  * @param current_depth critical path on the output of current gate
  * @param max_depth ptr to max critical path ever reached
+ * @returns gate output and can update critical path
  */
 static bool nand_helper_evaluate(nand_t *g, ssize_t current_depth,
                                  ssize_t *max_depth) {
-    //! i dont like this
     if (g->number_of_inputs > 0) {
         current_depth++;
-        // TODO integer overflow
     }
 
     if (current_depth > *max_depth) {
@@ -370,7 +366,7 @@ static bool nand_helper_evaluate(nand_t *g, ssize_t current_depth,
     return !and_result;
 }
 
-/*
+/**
  * evaluates the outputs of gate systems
  * @param g gate array
  * @param s boolean result array
@@ -384,12 +380,11 @@ ssize_t nand_evaluate(nand_t **g, bool *s, size_t m) {
     }
 
     if (!nand_validate_gate_system_array(g, m)) {
-        // errno already set
+        // errno already set accordingly while checking if valid
         return -1;
     }
 
-    //! i dont understand how the critical path calculation works
-    ssize_t critical_path = 0; // TODO verify recursion logic and base cases
+    ssize_t critical_path = 0;
     for (size_t i = 0; i < m; i++) {
         nand_t *current_gate = g[i];
         if (!current_gate->buffered_output.available) {
